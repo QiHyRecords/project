@@ -127,4 +127,4 @@ class JobQueue:
         self._persist()
 
 
-job_queue = JobQueue(num_workers=2)
+job_queue = JobQueue(num_workers=settings.job_queue_workers)

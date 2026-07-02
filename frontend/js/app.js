@@ -47,6 +47,33 @@ async function loadDashboard() {
 }
 loadDashboard();
 
+// ---- Danh sách model tách vocal (không hardcode, lấy từ Model Manager) ----
+async function loadSeparationModels() {
+  const select = document.getElementById("separator-model");
+  const btn = document.getElementById("btn-separate");
+  try {
+    const res = await fetch("/api/models/vocal-separation", { headers: authHeaders() });
+    const models = res.ok ? await res.json() : [];
+    select.innerHTML = "";
+    if (models.length === 0) {
+      select.innerHTML = `<option value="">Chưa có model nào được cài</option>`;
+      btn.disabled = true;
+      return;
+    }
+    for (const m of models) {
+      const opt = document.createElement("option");
+      opt.value = m.name;
+      opt.textContent = m.name;
+      select.appendChild(opt);
+    }
+    btn.disabled = false;
+  } catch (e) {
+    select.innerHTML = `<option value="">Lỗi tải danh sách model</option>`;
+    btn.disabled = true;
+  }
+}
+loadSeparationModels();
+
 // ---- Upload (drag & drop + progress) ----
 const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("file-input");
@@ -153,15 +180,33 @@ async function pollJob(jobId) {
 
 function showResult(job) {
   jobResult.innerHTML = "";
-  if (job.result?.summary) {
+
+  if (job.job_type === "analyze" && job.result?.summary) {
     const s = job.result.summary;
     const p = document.createElement("p");
     p.textContent = `BPM: ${s.bpm} | Key: ${s.key} ${s.mode} | Duration: ${s.duration}s`;
     jobResult.appendChild(p);
+    addDownloadLink(job.id, "json", "Tải kết quả JSON");
+    addDownloadLink(job.id, "txt", "Tải timeline TXT");
+    return;
   }
+
+  if (job.job_type === "separate" && job.result) {
+    const labels = { vocal: "Vocal", instrumental: "Instrumental", bass: "Bass", drums: "Drums", other: "Other" };
+    for (const key of Object.keys(job.result)) {
+      const stem = key.replace("_path", "");
+      if (!labels[stem]) continue;
+      addDownloadLink(job.id, stem, `Tải ${labels[stem]}.wav`);
+    }
+    return;
+  }
+}
+
+function addDownloadLink(jobId, fileKey, text) {
   const dl = document.createElement("a");
-  dl.href = `/api/download/${job.id}?file=json`;
-  dl.textContent = "Tải kết quả JSON";
+  dl.href = `/api/download/${jobId}?file=${fileKey}`;
+  dl.textContent = text;
   dl.setAttribute("download", "");
+  dl.style.display = "block";
   jobResult.appendChild(dl);
 }

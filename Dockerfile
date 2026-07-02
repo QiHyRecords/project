@@ -17,4 +17,6 @@ RUN mkdir -p storage/uploads storage/outputs storage/logs storage/jobs storage/t
 
 EXPOSE 8000
 
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Dùng shell form (không phải JSON array) để $PORT được Railway inject và expand đúng lúc chạy.
+# Nếu chạy local không có PORT, mặc định dùng 8000.
+CMD uvicorn backend.main:app --host 0.0.0.0 --port ${PORT:-8000}

@@ -97,6 +97,42 @@ def install_model_from_url(name: str, model_type: str, url: str) -> ModelInfo:
         raise
 
 
+def install_demucs_model(name: str, demucs_tag: str) -> ModelInfo:
+    """
+    Cài model Demucs (mã nguồn mở) — không cần URL thủ công vì Demucs tự tải
+    trọng số qua torch.hub. Hàm này ép tải về ngay lúc admin bấm install,
+    thay vì để lazy-load lúc user chạy job đầu tiên (trải nghiệm rõ ràng hơn).
+    """
+    from backend.core.separation import ensure_model_downloaded
+
+    reg = _load_registry()
+    model_dir: Path = settings.models_dir / name
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    reg[name] = ModelInfo(
+        name=name,
+        type="vocal-separation",
+        path=str(settings.torch_cache_dir),
+        status="downloading",
+        source_url=f"demucs:{demucs_tag}",
+    ).model_dump()
+    _save_registry(reg)
+
+    try:
+        sources = ensure_model_downloaded(demucs_tag)
+        reg[name]["status"] = "installed"
+        reg[name]["installed_at"] = datetime.utcnow().isoformat()
+        reg[name]["version"] = demucs_tag
+        _save_registry(reg)
+        logger.info(f"Demucs model '{name}' ({demucs_tag}) đã cài xong. Stems: {sources}")
+        return ModelInfo(**reg[name])
+    except Exception as e:
+        reg[name]["status"] = "error"
+        _save_registry(reg)
+        logger.error(f"Lỗi khi cài Demucs model '{name}': {e}")
+        raise
+
+
 def remove_model(name: str) -> bool:
     reg = _load_registry()
     if name not in reg:

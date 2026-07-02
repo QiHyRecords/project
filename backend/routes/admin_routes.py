@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from backend.core.auth import require_admin, TokenData, create_user
 from backend.core.model_registry import (
-    list_models, install_model_from_url, remove_model, reload_model,
+    list_models, install_model_from_url, install_demucs_model, remove_model, reload_model,
 )
 from backend.core.job_queue import job_queue
 from backend.core.system_stats import get_system_stats
@@ -33,6 +33,23 @@ def install_model(req: InstallModelRequest, current_user: TokenData = Depends(re
         return install_model_from_url(req.name, req.type, req.url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cài model thất bại: {e}")
+
+
+class InstallDemucsRequest(BaseModel):
+    name: str          # tên hiển thị trong hệ thống, vd "VS-HsBtl" hoặc "Demucs-4stem"
+    demucs_tag: str     # tag thật của Demucs: "htdemucs" | "htdemucs_ft" | "mdx" | "mdx_extra"
+
+
+@router.post("/install-demucs-model")
+def install_demucs(req: InstallDemucsRequest, current_user: TokenData = Depends(require_admin)):
+    """
+    Cài model Demucs mã nguồn mở — không cần URL, Demucs tự tải trọng số.
+    Có thể mất vài phút cho lần đầu (weights vài trăm MB).
+    """
+    try:
+        return install_demucs_model(req.name, req.demucs_tag)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cài Demucs model thất bại: {e}")
 
 
 class ModelNameRequest(BaseModel):

@@ -115,12 +115,27 @@ def _match_chord(chroma_frame: np.ndarray) -> str:
 
 
 def analyze_audio(file_path: str) -> AnalysisResult:
-    y, sr = librosa.load(file_path, sr=None, mono=True)
-    duration = librosa.get_duration(y=y, sr=sr)
+    import soundfile as sf
+    from backend.config import settings
+
+    # Lấy metadata (sample rate gốc, duration thật) mà KHÔNG load toàn bộ audio vào RAM.
+    info = sf.info(file_path)
+    native_sr = info.samplerate
+    full_duration = info.frames / float(native_sr)
+
+    max_seconds = settings.max_analysis_seconds
+    load_duration = min(full_duration, max_seconds) if max_seconds else full_duration
+    truncated = full_duration > load_duration
+
+    # Downsample về analysis_sample_rate (mặc định 22050) để giảm ~1 nửa RAM/CPU so với
+    # sr gốc (thường 44100/48000) — không ảnh hưởng đáng kể tới chroma/tempo/key detection.
+    analysis_sr = settings.analysis_sample_rate
+    y, sr = librosa.load(
+        file_path, sr=analysis_sr, mono=True, duration=load_duration
+    )
 
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
     onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-    # tempo_confidence: dùng độ nổi bật của autocorrelation tại BPM ước lượng làm proxy
     ac = librosa.autocorrelate(onset_env, max_size=len(onset_env))
     tempo_confidence = float(np.clip(ac.max() / (np.sum(np.abs(ac)) + 1e-9) * 10, 0, 1))
 
@@ -132,8 +147,7 @@ def analyze_audio(file_path: str) -> AnalysisResult:
 
     beat_times = librosa.frames_to_time(beat_frames, sr=sr)
     if len(beat_times) < 2:
-        # fallback: chia đều theo khung 2 giây nếu không phát hiện được beat rõ ràng
-        beat_times = np.arange(0, duration, 2.0)
+        beat_times = np.arange(0, load_duration, 2.0)
 
     chroma_times = librosa.frames_to_time(np.arange(chroma.shape[1]), sr=sr)
 
@@ -147,13 +161,22 @@ def analyze_audio(file_path: str) -> AnalysisResult:
             chords.append(ChordEvent(time=round(float(bt), 2), chord=chord_label))
             last_chord = chord_label
 
+    if truncated:
+        chords.append(ChordEvent(
+            time=round(load_duration, 2),
+            chord=f"[Đã dừng phân tích ở {int(load_duration)}s để tránh quá tải RAM]",
+        ))
+
+    # Giải phóng mảng audio lớn ngay khi không cần nữa
+    del y, chroma
+
     return AnalysisResult(
         bpm=round(float(tempo), 2),
         tempo_confidence=round(tempo_confidence, 3),
         key=key,
         mode=mode,
-        sample_rate=int(sr),
-        duration=round(float(duration), 2),
+        sample_rate=int(native_sr),
+        duration=round(float(full_duration), 2),
         tuning=round(tuning, 4),
         chords=chords,
     )
