@@ -1,0 +1,12 @@
+services:
+  audio-ai-suite:
+    build: .
+    container_name: audio-ai-suite
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
+      - ./models:/app/models
+    environment:
+      - AAS_SECRET_KEY=change_this_secret_in_production
+    restart: unless-stopped

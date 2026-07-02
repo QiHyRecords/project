@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio AI Suite</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="dark">
+  <header class="topbar">
+    <h1>🎧 Audio AI Suite</h1>
+    <div class="user-box">
+      <span id="user-label"></span>
+      <button id="logout-btn">Đăng xuất</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="stats-panel" class="card admin-only" hidden>
+      <h2>Trạng thái server</h2>
+      <div class="stats-grid" id="stats-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>Upload file âm thanh</h2>
+      <div id="dropzone" class="dropzone">
+        Kéo thả file vào đây hoặc bấm để chọn (mp3, wav, flac, ogg, m4a)
+        <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a" hidden>
+      </div>
+      <div id="progress-wrap" class="progress-wrap" hidden>
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+      <p id="upload-result"></p>
+    </section>
+
+    <section class="card" id="action-panel" hidden>
+      <h2>Chọn xử lý</h2>
+      <div class="actions-row">
+        <button id="btn-analyze">Phân tích nhạc lý (BPM/Key/Chord)</button>
+        <select id="separator-model">
+          <option value="MDX-Net">MDX-Net</option>
+          <option value="VS-HsBtl">VS-HsBtl</option>
+        </select>
+        <button id="btn-separate">Tách vocal</button>
+      </div>
+    </section>
+
+    <section class="card" id="job-panel" hidden>
+      <h2>Tiến trình xử lý</h2>
+      <p id="job-status"></p>
+      <div id="job-result"></div>
+    </section>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

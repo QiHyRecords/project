@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+storage/uploads/*
+storage/outputs/*
+storage/logs/*
+storage/jobs/*
+storage/temp/*
+!storage/**/.gitkeep
+models/*/
+!models/registry.json
+backend/core/users.json
+.env
