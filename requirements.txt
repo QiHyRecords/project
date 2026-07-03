@@ -12,6 +12,7 @@ soundfile==0.12.1
 torch==2.3.1
 torchaudio==2.3.1
 demucs==4.0.1
+diffq==0.2.4
 psutil==5.9.8
 rich==13.7.1
 aiofiles==23.2.1
