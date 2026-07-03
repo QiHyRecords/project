@@ -30,7 +30,8 @@ class Settings(BaseSettings):
     # Phân tích chỉ xử lý tối đa N giây đầu bài hát để tránh OOM với bài quá dài.
     max_analysis_seconds: int = 240
     analysis_sample_rate: int = 22050
-    max_separation_seconds: int = 360  # Demucs nặng RAM hơn Music Analyzer
+    max_separation_seconds: int = 120  # giảm từ 360 -> 120 để tránh OOM trên RAM thấp
+    demucs_segment_seconds: float = 8.0  # chia nhỏ đoạn xử lý, giảm RAM đỉnh của Demucs
     job_queue_workers: int = 1  # chạy tuần tự để không cộng dồn RAM giữa các job nặng
 
     model_registry_file: Path = BASE_DIR / "models" / "registry.json"

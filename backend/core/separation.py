@@ -16,12 +16,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable, Optional
 
+import gc
+
 import torch
 import torchaudio
 
 from backend.core.logger import get_logger
 
 logger = get_logger("separation")
+
+# Hạn chế số thread CPU torch dùng — giảm overhead bộ nhớ khi chạy trên
+# container RAM thấp (vd Railway Trial), đổi lại tốc độ chậm hơn 1 chút.
+torch.set_num_threads(1)
 
 _MODEL_CACHE: dict[str, "object"] = {}
 
@@ -93,9 +99,18 @@ def separate_audio(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     with torch.no_grad():
         sources = apply_model(
-            model, wav_norm[None], device=device, progress=False, split=True
+            model,
+            wav_norm[None],
+            device=device,
+            progress=False,
+            split=True,
+            segment=settings.demucs_segment_seconds,
+            overlap=0.1,  # giảm từ mặc định 0.25 -> ít tính toán chồng lấp hơn, nhẹ RAM hơn
         )[0]
     sources = sources * ref.std() + ref.mean()
+
+    del wav, wav_norm, ref
+    gc.collect()
 
     if progress_cb:
         progress_cb(80)
@@ -124,6 +139,9 @@ def separate_audio(
     for stem in ("bass", "drums", "other"):
         if stem in stem_paths:
             result[stem] = stem_paths[stem]
+
+    del sources, instrumental
+    gc.collect()
 
     if progress_cb:
         progress_cb(100)

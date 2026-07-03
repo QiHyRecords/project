@@ -164,6 +164,17 @@ Remover chỉ xử lý tối đa `AAS_MAX_SEPARATION_SECONDS` giây đầu (mặ
 chỉ chạy 1 job cùng lúc (`AAS_JOB_QUEUE_WORKERS=1`) để không cộng dồn RAM. Có thể chỉnh các giá trị
 này qua biến môi trường nếu server có nhiều RAM hơn.
 
+**Vì sao "Tách vocal" bị "Killed" / kẹt % mãi không xong?**
+Demucs khá ngốn RAM. Nếu Deploy Logs có dòng `Killed` ngay sau khi job separate bắt đầu, đó là
+Linux OOM Killer giết tiến trình vì hết RAM. Hệ thống đã tự giới hạn: chỉ xử lý tối đa
+`AAS_MAX_SEPARATION_SECONDS` giây đầu (mặc định 120s), chia nhỏ thành đoạn `AAS_DEMUCS_SEGMENT_SECONDS`
+giây (mặc định 8s) để giảm RAM đỉnh, và giới hạn `torch` chỉ dùng 1 CPU thread. Nếu vẫn OOM:
+- Giảm `AAS_MAX_SEPARATION_SECONDS` xuống thấp hơn nữa (vd 60) qua biến môi trường, hoặc
+- Cài lại model với tag nhẹ hơn: gọi lại `/api/admin/install-demucs-model` với
+  `"demucs_tag": "mdx_q"` (bản quantized, nhẹ RAM hơn `htdemucs` đáng kể, đổi lại chất lượng
+  tách hơi giảm), hoặc
+- Nâng gói Railway để có nhiều RAM hơn cho container.
+
 **Vì sao "Tách vocal" báo lỗi "Model chưa được cài đặt"?**
 Vocal Remover đã có pipeline inference thật (Demucs), nhưng cần admin cài model trước qua
 `POST /api/admin/install-demucs-model` (xem mục "Thêm model mới" bên trên) — hệ thống không
